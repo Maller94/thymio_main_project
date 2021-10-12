@@ -17,6 +17,8 @@ from threading import Thread
 from random import random
 
 class Thymio:
+    s0 = 0
+
     def __init__(self):
         self.aseba = self.setup()
 
@@ -51,19 +53,8 @@ class Thymio:
         print("saved image to out.png")
 
     def sens(self):
-        # Timer used for the testing phase
-        # for cnt in range(5000):
-        sensors = self.aseba.GetVariable("thymio-II", "prox.horizontal")
-        # print(f'timer {i}')
-            #print("Sensing:")
-            
-            # Controller
-        #     if sensors[0] > 4500 or sensors[1] > 4500 or sensors[2] > 4500 or sensors[3] > 4500 or sensors[4] > 4500:
-        #         self.drive(-100,100)
-        #     else:                
-        #         self.drive(-100,100)
-        # self.stop()
-        return sensors
+        prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
+        return prox_horizontal
 
 ############## Bus and aseba setup ######################################
 
@@ -104,20 +95,23 @@ class Thymio:
 def main():
     robot = Thymio()
 
-    # Make a robot controller (Talk with martin)
-
-    robot.testCamera()
-
-    # robot.sens() 
-    # thread = Thread(target=robot.sens)
-    # thread.daemon = True
-    # thread.start()
-
-    #robot.drive(200, 200)
-    #sleep(15)
-    #robot.stop()
-       
-
+    # do we need this? 
+    thread = Thread(target=robot.sens)
+    thread.daemon = True
+    thread.start()
+    
+    # controller
+    for _ in range(10000):
+        #turn right when detecting wall
+        if robot.sens()[0] > 4150:
+            robot.drive(100,-100)
+        #turn left when detecting wall
+        elif robot.sens()[4] > 4800:
+            robot.drive(-100,100)
+        else:
+            robot.drive(100,100)
+    
+    robot.stop()
 #------------------- Main loop end ------------------------
 
 if __name__ == '__main__':

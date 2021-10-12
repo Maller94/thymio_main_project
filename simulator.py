@@ -56,14 +56,16 @@ def simulationstep():
 #################
 file = open("trajectory.dat", "w")
 
-for cnt in range(15000):
-    #simple single-ray sensor
-    ray = LineString([(x, y), (x+cos(q)*2*W,-(y+sin(q)*2*H)) ])  # a line from robot to a point outside arena in direction of q
+for cnt in range(10000):
+    #simple single-ray sensor pointing straight forward
+    ray = LineString([(x, y), (x+cos(q)*2*W,(y+sin(q)*2*H)) ])  # a line from robot to a point outside arena in direction of q
     s = world.intersection(ray)
     distanceWall = sqrt((s.x-x)**2+(s.y-y)**2) # Distance wall
     
+    #her skal vi tilføje nogle rays der ligner sensor 0 og 4 på Thymioen
+
     #simple controller - change direction of wheels every 10 seconds (100*robot_timestep) unless close to wall then turn on spot
-    if distanceWall < 0.30 or distanceWall > 1.85:
+    if distanceWall < 0.30:
         left_wheel_velocity = -0.9
         right_wheel_velocity = 0.9
     else:                

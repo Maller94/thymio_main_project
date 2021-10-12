@@ -30,12 +30,13 @@ class Thymio:
     def sens(self):
         while True:
             prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
-            print("Sensing:")
-            print(prox_horizontal[0])
-            print(prox_horizontal[1])
-            print(prox_horizontal[2])
-            print(prox_horizontal[3])
-            print(prox_horizontal[4])
+            # print("Sensing:")
+            # print(prox_horizontal[0])
+            # print(prox_horizontal[1])
+            # print(prox_horizontal[2])
+            # print(prox_horizontal[3])
+            # print(prox_horizontal[4])
+
 
 ############## Bus and aseba setup ######################################
 
