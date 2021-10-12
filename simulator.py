@@ -8,8 +8,10 @@ from matplotlib import pyplot as plt
 
 # Constants
 ###########
-R = 0.023  # radius of wheels in meters
-L = 0.010  # distance between wheels in meters
+R = 0.021  # radius of wheels in meters
+# circumference is then 2 * 2.1 * pi = 13.1946 CM
+# 0.131946 M
+L = 0.095  # distance between wheels in meters
 
 W = 2.0  # width of arena
 H = 2.0  # height of arena
@@ -27,14 +29,19 @@ x = 0.0   # robot position in meters - x direction - positive to the right
 y = 0.0   # robot position in meters - y direction - positive up
 q = 0.0   # robot heading with respect to x-axis in radians 
 
-left_wheel_velocity = 0.5   # robot left wheel velocity in radians/s
-right_wheel_velocity = 0.5  # robot right wheel velocity in radians/s
+left_wheel_velocity = 0.6063   # robot left wheel velocity in radians/s
+right_wheel_velocity = 0.6063  # robot right wheel velocity in radians/s
+# numbers amount to speed 100 in Thymio
 
 # robot coordinates
-x_coord = []
-y_coord = []
-Vdir_1 = []
-Vdir_2 = []
+robot_pos = {
+    "x_coord": [],
+    "y_coord": [],
+    "Vdir_1": [],
+    "Vdir_2": [],
+    "sX_coord": [],
+    "sY_coord": []
+}
 
 # Kinematic model
 #################
@@ -54,20 +61,30 @@ def simulationstep():
 
 # Simulation loop
 #################
-file = open("trajectory.dat", "w")
 
 for cnt in range(10000):
     #simple single-ray sensor pointing straight forward
     ray = LineString([(x, y), (x+cos(q)*2*W,(y+sin(q)*2*H)) ])  # a line from robot to a point outside arena in direction of q
     s = world.intersection(ray)
     distanceWall = sqrt((s.x-x)**2+(s.y-y)**2) # Distance wall
-    
-    #her skal vi tilføje nogle rays der ligner sensor 0 og 4 på Thymioen
+#    print(s)
+#   print(list(s.coords)[0])
 
-    #simple controller - change direction of wheels every 10 seconds (100*robot_timestep) unless close to wall then turn on spot
-    if distanceWall < 0.30:
+    ray0 = LineString([(x, y), (x+cos(q-0.04)*2*W,(y+sin(q-0.04)*2*H)) ])  # a line from robot to a point outside arena in direction of q
+    s0 = world.intersection(ray)
+    distanceWall0 = sqrt((s0.x-x)**2+(s0.y-y)**2) # Distance wall
+
+    ray4 = LineString([(x, y), (x+cos(q+0.04)*2*W,(y+sin(q+0.04)*2*H)) ])  # a line from robot to a point outside arena in direction of q
+    s4 = world.intersection(ray)
+    distanceWall4 = sqrt((s4.x-x)**2+(s4.y-y)**2) # Distance wall
+
+    #simple controller - if close to wall, turn on spot
+    if distanceWall0 < 0.30:
         left_wheel_velocity = -0.9
         right_wheel_velocity = 0.9
+    elif distanceWall4 < 0.30:
+        left_wheel_velocity = 0.9
+        right_wheel_velocity = -0.9
     else:                
         left_wheel_velocity = 0.5
         right_wheel_velocity = 0.5
@@ -82,19 +99,26 @@ for cnt in range(10000):
         print('Stopped due to collission')
         break
         
+    #save robot location and rays for matplotlib    
     if cnt%50==0:
-        x_coord.append(x)
-        y_coord.append(y)
-        Vdir_1.append(cos(q)*0.05)
-        Vdir_2.append(sin(q)*0.05)
-        #file.write( str(x) + ", " + str(y) + ", " + str(cos(q)*0.05) + ", " + str(sin(q)*0.05) + "\n")
-
-file.close()
+        robot_pos["x_coord"].append(x)
+        robot_pos["y_coord"].append(y)
+        robot_pos["Vdir_1"].append(cos(q)*0.05)
+        robot_pos["Vdir_2"].append(sin(q)*0.05)
+        robot_pos["sX_coord"].append(s.x)
+        robot_pos["sY_coord"].append(s.y)
+        
 
 # implementing matplotlib
-
 plt.axis([-1, 1, -1, 1])
-for i in range(len(x_coord)):
-    plt.quiver(x_coord[i],y_coord[i],Vdir_1[i],Vdir_2[i],headwidth=3.0)
+for i in range(len(robot_pos["x_coord"])):
+    #robot
+    plt.quiver(robot_pos["x_coord"][i],robot_pos["y_coord"][i],robot_pos["Vdir_1"][i],robot_pos["Vdir_2"][i],headwidth=3.0)
+    #ray
+    plt.plot([robot_pos["x_coord"][i], robot_pos["sX_coord"][i]], [robot_pos["y_coord"][i], robot_pos["sY_coord"][i]])
+    #ray0
+    #plt.plot()
+    #ray4
+    #plt.plot()
     plt.pause(0.01)
 plt.show()

@@ -22,6 +22,7 @@ class Thymio:
     def __init__(self):
         self.aseba = self.setup()
 
+    # max speed is 500 = 20cm/s
     def drive(self, left_wheel_speed, right_wheel_speed):
         print("Left_wheel_speed: " + str(left_wheel_speed))
         print("Right_wheel_speed: " + str(right_wheel_speed))
@@ -100,6 +101,7 @@ def main():
     thread.daemon = True
     thread.start()
     
+ 
     # controller
     for _ in range(10000):
         #turn right when detecting wall
