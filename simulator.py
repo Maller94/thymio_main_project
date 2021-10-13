@@ -68,34 +68,37 @@ def simulationstep():
 
 for cnt in range(10000):
     #simple single-ray sensor pointing straight forward
-    ray = LineString([(x + 0.02, y), (x+cos(q)*2*W,(y+sin(q)*2*H)) ])  # a line from robot to a point outside arena in direction of q
+    ray = LineString([(x, y), (x+cos(q)*2*W,(y+sin(q)*2*H)) ])  # a line from robot to a point outside arena in direction of q
     s = world.intersection(ray)
     distanceWall = sqrt((s.x-x)**2+(s.y-y)**2) # Distance wall
 
     #simple single-ray sensor pointing to the left
-    ray0 = LineString([(x, y+0.05), (x+cos(q+0.4)*2*W,(y+sin(q+0.4)*2*H)) ])  # a line from robot to a point outside arena in direction of q
+    ray0 = LineString([(x, y), (x+cos(q+0.4)*2*W,(y+sin(q+0.4)*2*H)) ])  # a line from robot to a point outside arena in direction of q
     s0 = world.intersection(ray0)
     distanceWall0 = sqrt((s0.x-x)**2+(s0.y-y)**2) # Distance wall
 
     #simple single-ray sensor pointing to the right
-    ray4 = LineString([(x, y-0.05), (x+cos(q-0.4)*2*W,(y+sin(q-0.4)*2*H)) ])  # a line from robot to a point outside arena in direction of q
+    ray4 = LineString([(x, y), (x+cos(q-0.4)*2*W,(y+sin(q-0.4)*2*H)) ])  # a line from robot to a point outside arena in direction of q
     s4 = world.intersection(ray4)
     distanceWall4 = sqrt((s4.x-x)**2+(s4.y-y)**2) # Distance wall
 
     #simple controller - if sensor0 detects, turn right
-    turn_rate = 3.2
-    if (distanceWall0 < 0.30 and distanceWall < 0.30) or distanceWall0 < 0.3:
+    turn_rate = 2.2
+
+    if distanceWall4 < 0.35:
         left_wheel_velocity = -turn_rate
         right_wheel_velocity = turn_rate
         #print("sensor0: " + str(distanceWall0))
-    #if sensor4 detects, turn left
-    elif (distanceWall4 < 0.30 and distanceWall < 0.30) or distanceWall4 < 0.3:
-        left_wheel_velocity = turn_rate
-        right_wheel_velocity = -turn_rate
-        #print("sensor4: " + str(distanceWall4))
-    elif distanceWall4 < 0.3 and distanceWall0 < 0.3:
-        left_wheel_velocity = -turn_rate
-        right_wheel_velocity = turn_rate
+    # elif distanceWall4 < 0.35:
+    #     left_wheel_velocity = turn_rate
+    #     right_wheel_velocity = -turn_rate
+    #     #print("sensor4: " + str(distanceWall4))
+    # elif distanceWall < 0.25:
+    #     left_wheel_velocity = -turn_rate
+    #     right_wheel_velocity = turn_rate
+    # elif distanceWall0 < 0.35 and distanceWall4 < 0.35:
+    #     left_wheel_velocity = -turn_rate
+    #     right_wheel_velocity = turn_rate
     else:                
         left_wheel_velocity = 0.5
         right_wheel_velocity = 0.5
@@ -123,22 +126,27 @@ for cnt in range(10000):
         robot_pos["s4X_coord"].append(s4.x)
         robot_pos["s4Y_coord"].append(s4.y)
 
+   # print(f'left: {distanceWall0}')
+    #print(f'right: {distanceWall4}')
 # implementing matplotlib
 
 for i in range(len(robot_pos["x_coord"])):
-    plt.axis([-1, 1, -1, 1])   
+    plt.axis([-1, 1, -1, 1])
+
+    # robot x,y coordinates
+    plt.plot(robot_pos["x_coord"][i],robot_pos["y_coord"][i], marker='.', markersize=10, color="red")   
     
     #robot - change to square 
     plt.quiver(robot_pos["x_coord"][i],robot_pos["y_coord"][i],robot_pos["Vdir_1"][i],robot_pos["Vdir_2"][i],headwidth=3.0)
     
     #ray
-    plt.plot([robot_pos["x_coord"][i] + 0.02, robot_pos["sX_coord"][i]], [robot_pos["y_coord"][i], robot_pos["sY_coord"][i]])
+    plt.plot([robot_pos["x_coord"][i], robot_pos["sX_coord"][i]], [robot_pos["y_coord"][i], robot_pos["sY_coord"][i]])
     
     #ray0
-    plt.plot([robot_pos["x_coord"][i], robot_pos["s0X_coord"][i]], [robot_pos["y_coord"][i] + 0.05, robot_pos["s0Y_coord"][i]])
+    plt.plot([robot_pos["x_coord"][i], robot_pos["s0X_coord"][i]], [robot_pos["y_coord"][i], robot_pos["s0Y_coord"][i]])
 
     #ray4
-    plt.plot([robot_pos["x_coord"][i], robot_pos["s4X_coord"][i]], [robot_pos["y_coord"][i] -0.05, robot_pos["s4Y_coord"][i]])
+    plt.plot([robot_pos["x_coord"][i], robot_pos["s4X_coord"][i]], [robot_pos["y_coord"][i], robot_pos["s4Y_coord"][i]])
 
     plt.pause(0.01)
     plt.clf()
