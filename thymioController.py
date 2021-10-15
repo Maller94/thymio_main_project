@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # this imports the camera
 
-from picamera import PiCamera
+#from picamera import PiCamera
 
 import os
 import numpy as np
@@ -17,10 +17,16 @@ from threading import Thread
 from random import random
 
 class Thymio:
-    s0 = 0
+    state = 'initial'
 
     def __init__(self):
         self.aseba = self.setup()
+
+    def getState(self):
+        return self.state
+    
+    def setState(self,newState):
+        self.state = newState
 
     # max speed is 500 = 20cm/s
     def drive(self, left_wheel_speed, right_wheel_speed):
@@ -37,7 +43,7 @@ class Thymio:
         right_wheel = 0
         self.aseba.SendEventName("motor.target", [left_wheel, right_wheel])
 
-    def testCamera(self):
+    def initPicture(self):
         camera = PiCamera()
         print("Camera test")
         camera.start_preview()
@@ -100,7 +106,6 @@ def main():
     thread = Thread(target=robot.sens)
     thread.daemon = True
     thread.start()
-    
  
     # controller
     for _ in range(10000):
