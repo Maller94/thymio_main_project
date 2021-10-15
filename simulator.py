@@ -67,18 +67,20 @@ def simulationstep():
 #################
 
 for cnt in range(10000):
+    scalar = 4
+
     #simple single-ray sensor pointing straight forward
-    ray = LineString([(x, y), (x+cos(q)*2*W,(y+sin(q)*2*H)) ])  # a line from robot to a point outside arena in direction of q
+    ray = LineString([(x, y), (x+cos(q)*scalar*W,(y+sin(q)*scalar*H)) ])  # a line from robot to a point outside arena in direction of q
     s = world.intersection(ray)
     distanceWall = sqrt((s.x-x)**2+(s.y-y)**2) # Distance wall
 
     #simple single-ray sensor pointing to the left
-    ray0 = LineString([(x, y), (x+cos(q+0.4)*2*W,(y+sin(q+0.4)*2*H)) ])  # a line from robot to a point outside arena in direction of q
+    ray0 = LineString([(x, y), (x+cos(q+0.4)*scalar*W,(y+sin(q+0.4)*scalar*H)) ])  # a line from robot to a point outside arena in direction of q
     s0 = world.intersection(ray0)
     distanceWall0 = sqrt((s0.x-x)**2+(s0.y-y)**2) # Distance wall
 
     #simple single-ray sensor pointing to the right
-    ray4 = LineString([(x, y), (x+cos(q-0.4)*2*W,(y+sin(q-0.4)*2*H)) ])  # a line from robot to a point outside arena in direction of q
+    ray4 = LineString([(x, y), (x+cos(q-0.4)*scalar*W,(y+sin(q-0.4)*scalar*H)) ])  # a line from robot to a point outside arena in direction of q
     s4 = world.intersection(ray4)
     distanceWall4 = sqrt((s4.x-x)**2+(s4.y-y)**2) # Distance wall
 
