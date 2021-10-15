@@ -14,4 +14,4 @@ def locateAprilTag(image,choice = 1):
         return result
 
 if __name__ == "__main__":
-    print(locateAprilTag('small_aprTag.jpg',2))
+    print(locateAprilTag('aprilTag.png',2))
