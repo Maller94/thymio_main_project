@@ -14,8 +14,8 @@ R = 0.021  # radius of wheels in meters
 # 0.131946 M
 L = 0.095  # distance between wheels in meters
 
-W = 2.0  # width of arena
-H = 2.0  # height of arena
+W = 1.92  # width of arena
+H = 1.13  # height of arena
 
 robot_timestep = 0.1        # 1/robot_timestep equals update frequency of robot
 simulation_timestep = 0.01  # timestep in kinematics sim (probably don't touch..)
@@ -35,7 +35,7 @@ right_wheel_velocity = 0.6063  # robot right wheel velocity in radians/s
 # numbers amount to speed 100 in Thymio
 
 # Scalar value 
-scalar = W + H
+scalar = 2*(W + H)
 
 
 # robot coordinates
@@ -94,8 +94,9 @@ def getLaserScans(resolution=10):
         x_coord = math.cos(current_angle) * distance
         y_coord = math.sin(current_angle) * distance
 
-        full_scan.append((float(x_coord), float(y_coord))) #
+        full_scan.append((float(s.x), float(s.y))) #
     return full_scan
+    
     # the openCV library has a method to fit a rectangle on a point collection.
     # It also returns how much the rectangle is rotated in relation to your local x-axis.
     #(In the case of the code snippet, the x-axis extends in the direction the robot is facing)
@@ -110,7 +111,7 @@ def getLaserScans(resolution=10):
 # Simulation loop
 #################
 
-for cnt in range(1000):
+for cnt in range(2000):
 
     #simple single-ray sensor pointing straight forward
     ray = LineString([(x, y), (x+cos(q)*scalar,(y+sin(q)*scalar)) ])  # a line from robot to a point outside arena in direction of q
@@ -128,25 +129,14 @@ for cnt in range(1000):
     distanceWall4 = sqrt((s4.x-x)**2+(s4.y-y)**2) # Distance wall
 
     #simple controller - if sensors detect, turn
-    turn_rate = 2.2
+    turn_rate = 1.2
 
     if distanceWall4 < 0.35:
         left_wheel_velocity = -turn_rate
         right_wheel_velocity = turn_rate
-        #print("sensor0: " + str(distanceWall0))
-    # elif distanceWall4 < 0.35:
-    #     left_wheel_velocity = turn_rate
-    #     right_wheel_velocity = -turn_rate
-    #     #print("sensor4: " + str(distanceWall4))
-    # elif distanceWall < 0.25:
-    #     left_wheel_velocity = -turn_rate
-    #     right_wheel_velocity = turn_rate
-    # elif distanceWall0 < 0.35 and distanceWall4 < 0.35:
-    #     left_wheel_velocity = -turn_rate
-    #     right_wheel_velocity = turn_rate
     else:                
-        left_wheel_velocity = 0.5
-        right_wheel_velocity = 0.5
+        left_wheel_velocity = 0.3
+        right_wheel_velocity = 0.3
             
     #step simulation
     simulationstep()
@@ -170,21 +160,20 @@ for cnt in range(1000):
         robot_pos["s0Y_coord"].append(s0.y)
         robot_pos["s4X_coord"].append(s4.x)
         robot_pos["s4Y_coord"].append(s4.y)
-        robot_pos["lidar"] = getLaserScans()
-
+        robot_pos["lidar"].append(getLaserScans())
 
 # Implementing matplotlib
 #########################
 
 # plotting lidar lines for every simulation step
-def lidarMatPlot(j, list): 
-    for i in robot_pos["lidar"]: 
-        x, y = i
-        plt.plot([robot_pos["x_coord"][j] , x], [robot_pos["y_coord"][j] , y])
+def lidarMatPlot(iter): 
+    for j in robot_pos["lidar"][iter]: 
+        x, y = j
+        plt.plot([robot_pos["x_coord"][iter] , x], [robot_pos["y_coord"][iter] , y],color="gray")
 
 
 for i in range(len(robot_pos["x_coord"])):
-    plt.axis([-1, 1, -1, 1])
+    plt.axis([-W/2, W/2, -H/2, H/2])
 
     lidarMatPlot(i)
 
