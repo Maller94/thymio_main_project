@@ -1,3 +1,4 @@
+import math
 import shapely
 from shapely.geometry import LinearRing, LineString, Point
 from numpy import sin, cos, pi, sqrt
@@ -33,6 +34,10 @@ left_wheel_velocity = 0.6063   # robot left wheel velocity in radians/s
 right_wheel_velocity = 0.6063  # robot right wheel velocity in radians/s
 # numbers amount to speed 100 in Thymio
 
+# Scalar value 
+scalar = W + H
+
+
 # robot coordinates
 robot_pos = {
     "x_coord": [],
@@ -44,7 +49,8 @@ robot_pos = {
     "s0X_coord": [],
     "s0Y_coord": [],
     "s4X_coord": [],
-    "s4Y_coord": []
+    "s4Y_coord": [],
+    "lidar": []
 }
 
 # Kinematic model
@@ -63,11 +69,48 @@ def simulationstep():
         y += v_y * simulation_timestep
         q += omega * simulation_timestep
 
+
+# Lidar setup
+#############
+
+def getLaserScans(resolution=10):
+    full_scan = []
+
+    # here we emulate the lidar
+    for i in range(resolution+1):
+        added_angle = i * ((2* math.pi)/resolution)
+        current_angle = q + added_angle
+        ray = LineString([(x, y), (x+cos(current_angle)*scalar,(y+sin(current_angle)*scalar)) ])
+        s = world.intersection(ray)
+
+        # the individual ray distances is what you would get from your lidar sensors
+        distance = sqrt((s.x-x)**2+(s.y-y)**2)
+
+        # each measurement will have an individual angle depending on the amount of rays the lidar throws out
+        degrees = current_angle * 180 / math.pi
+
+        #hvad skal det her bruges til???
+        # here the intersect coords are calculated using the current angle and the measured distance
+        x_coord = math.cos(current_angle) * distance
+        y_coord = math.sin(current_angle) * distance
+
+        full_scan.append((float(x_coord), float(y_coord))) #
+    return full_scan
+    # the openCV library has a method to fit a rectangle on a point collection.
+    # It also returns how much the rectangle is rotated in relation to your local x-axis.
+    #(In the case of the code snippet, the x-axis extends in the direction the robot is facing)
+    #Note: integer may not be the best datatype to use if your local coords lies between 0 and 2.
+
+    center, width_height, angle = cv2.minAreaRect(np.asarray(res).astype(np.int))
+
+    #opencv method to return box corners
+    points = cv2.boxPoints(box)
+
+
 # Simulation loop
 #################
 
-for cnt in range(10000):
-    scalar = 4
+for cnt in range(1000):
 
     #simple single-ray sensor pointing straight forward
     ray = LineString([(x, y), (x+cos(q)*scalar,(y+sin(q)*scalar)) ])  # a line from robot to a point outside arena in direction of q
@@ -84,7 +127,7 @@ for cnt in range(10000):
     s4 = world.intersection(ray4)
     distanceWall4 = sqrt((s4.x-x)**2+(s4.y-y)**2) # Distance wall
 
-    #simple controller - if sensor0 detects, turn right
+    #simple controller - if sensors detect, turn
     turn_rate = 2.2
 
     if distanceWall4 < 0.35:
@@ -115,7 +158,7 @@ for cnt in range(10000):
         print('Stopped due to collission')
         break
         
-    #save robot location and rays for matplotlib    
+    #save robot location and sensor rays and lidar scans for matplotlib
     if cnt%50==0:
         robot_pos["x_coord"].append(x)
         robot_pos["y_coord"].append(y)
@@ -127,13 +170,23 @@ for cnt in range(10000):
         robot_pos["s0Y_coord"].append(s0.y)
         robot_pos["s4X_coord"].append(s4.x)
         robot_pos["s4Y_coord"].append(s4.y)
+        robot_pos["lidar"] = getLaserScans()
 
-   # print(f'left: {distanceWall0}')
-    #print(f'right: {distanceWall4}')
-# implementing matplotlib
+
+# Implementing matplotlib
+#########################
+
+# plotting lidar lines for every simulation step
+def lidarMatPlot(j, list): 
+    for i in robot_pos["lidar"]: 
+        x, y = i
+        plt.plot([robot_pos["x_coord"][j] , x], [robot_pos["y_coord"][j] , y])
+
 
 for i in range(len(robot_pos["x_coord"])):
     plt.axis([-1, 1, -1, 1])
+
+    lidarMatPlot(i)
 
     # robot x,y coordinates
     plt.plot(robot_pos["x_coord"][i],robot_pos["y_coord"][i], marker='.', markersize=10, color="red")   
@@ -141,14 +194,15 @@ for i in range(len(robot_pos["x_coord"])):
     #robot - change to square 
     plt.quiver(robot_pos["x_coord"][i],robot_pos["y_coord"][i],robot_pos["Vdir_1"][i],robot_pos["Vdir_2"][i],headwidth=3.0)
     
-    #ray
+    #mid sensor - 2
     plt.plot([robot_pos["x_coord"][i], robot_pos["sX_coord"][i]], [robot_pos["y_coord"][i], robot_pos["sY_coord"][i]])
     
-    #ray0
+    #left sensor - 0
     plt.plot([robot_pos["x_coord"][i], robot_pos["s0X_coord"][i]], [robot_pos["y_coord"][i], robot_pos["s0Y_coord"][i]])
 
-    #ray4
+    #right sensor - 4
     plt.plot([robot_pos["x_coord"][i], robot_pos["s4X_coord"][i]], [robot_pos["y_coord"][i], robot_pos["s4Y_coord"][i]])
+
 
     plt.pause(0.01)
     plt.clf()
