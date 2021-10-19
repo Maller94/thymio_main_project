@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 # this imports the camera
 
-#from picamera import PiCamera
-
+import pupil_apriltags
+from picamera import PiCamera
 import os
 import numpy as np
 import cv2
@@ -21,6 +21,8 @@ class Thymio:
 
     def __init__(self):
         self.aseba = self.setup()
+        self.camera = PiCamera()
+        self.camera.start_preview()
 
     def getState(self):
         return self.state
@@ -42,39 +44,27 @@ class Thymio:
         left_wheel = 0
         right_wheel = 0
         self.aseba.SendEventName("motor.target", [left_wheel, right_wheel])
+        self.camera.stop_preview()
 
     def initPicture(self):
-        camera = PiCamera()
-        print("Camera test")
-        camera.start_preview()
-        sleep(5)
-        #we capture to openCV compatible format
-        #you might want to increase resolution
-        camera.resolution = (320, 240)
-        camera.framerate = 24
+        self.camera.resolution = (320, 240)
+        self.camera.framerate = 24
         sleep(2)
         image = np.empty((240, 320, 3), dtype=np.uint8)
-        camera.capture(image, 'bgr')
-        cv2.imwrite('out.png', image)
-        camera.stop_preview()
-        print("saved image to out.png")
+        self.camera.capture(image, 'bgr')
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        at_detector = pupil_apriltags.Detector()
+        result = at_detector.detect(image)
+        # navigate down the list to retrieve the right information
 
     def controller(self):
         while True:
             prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
-            prox_ground = self.aseba.GetVariable("thymio-II", "prox.ground.reflected")
-            # print(prox_horizontal[0])
-            # print(prox_horizontal[1])
-            # print(prox_horizontal[2])
-            # print(prox_horizontal[3])
-            # print(prox_horizontal[4])
-            print(prox_ground[0])
-            print(prox_ground[1])
+            prox_ground = self.aseba.GetVariable("thymio-II", "prox.ground.delta")
 
 ############## Bus and aseba setup ######################################
 
     def setup(self):
-        print("Setting up")
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         bus = dbus.SessionBus()
         asebaNetworkObject = bus.get_object("ch.epfl.mobots.Aseba", "/")
@@ -115,18 +105,10 @@ def main():
     # thread.daemon = True
     # thread.start()
 
-    robot.controller()
- 
-    # # controller
-    # for _ in range(10000):
-    #     #turn right when detecting wall
-    #     if robot.sens()[0] > 4150:
-    #         robot.drive(100,-100)
-    #     #turn left when detecting wall
-    #     elif robot.sens()[4] > 4800:
-    #         robot.drive(-100,100)
-    #     else:
-    #         robot.drive(100,100)
+    # init controller
+    #robot.controller()
+    while True:
+        robot.initPicture()
     
     robot.stop()
 #------------------- Main loop end ------------------------
