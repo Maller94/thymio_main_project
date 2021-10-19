@@ -13,8 +13,10 @@ import matplotlib.pyplot as plt
 from time import sleep
 import dbus
 import dbus.mainloop.glib
+from math import cos, sin, pi, floor
 from threading import Thread
 from random import random
+from adafruit_rplidar import RPLidar
 
 class Thymio:
     state = 'initial'
@@ -23,6 +25,11 @@ class Thymio:
         self.aseba = self.setup()
         self.camera = PiCamera()
         self.camera.start_preview()
+        # Setup the RPLidar
+        self.PORT_NAME = '/dev/ttyUSB0'
+        self.lidar = RPLidar(None, self.PORT_NAME)
+        #This is where we store the lidar readings
+        self.scan_data = [0]*360
 
     def getState(self):
         return self.state
@@ -65,6 +72,21 @@ class Thymio:
         prox_ground = self.aseba.GetVariable("thymio-II", "prox.ground.delta")
         return prox_ground
 
+    def lidar_scan(self):
+        for scan in self.lidar.iter_scans():
+            #if(self.exit_now):
+            #    return
+            for (_, angle, distance) in scan:
+                self.scan_data[min([359, floor(angle)])] = distance
+
+    def getScanValues(self):
+        print(self.scan_values)
+    
+    def lidar_stop(self):
+        self.lidar.stop()
+        self.lidar.disconnect()
+
+
 ############## Bus and aseba setup ######################################
 
     def setup(self):
@@ -97,21 +119,31 @@ class Thymio:
         print("dbus error: %s" % str(e))
 
 
-
 #------------------ Main loop here -------------------------
 
 def main():
     # sensorThread = Thread(target=robot.sensors)
     # sensorThread.daemon = True
     # sensorThread.start()
-
+    
+    
+    scanner_thread = Thread(target=robot.lidar_scan)
+    scanner_thread.daemon = True
+    scanner_thread.start()
+    
+    
     # Controller
     while True:
+
+        #printing lidar scans
+        robot.getScanValues()
+
+        """
         if robot.sensors_horizontal()[1] > 3000 or robot.sensors_horizontal()[2] > 3000 or robot.sensors_horizontal()[3] > 3000:
             robot.drive(100,-100)
         else:
             robot.drive(100,100)
-
+        """
 
 #------------------- Main loop end ------------------------
 
@@ -123,6 +155,7 @@ if __name__ == '__main__':
         print("Stopping robot")
         robot.stop()
         exit_now = True
+        robot.lidar_stop()
         sleep(1)
         os.system("pkill -n asebamedulla")
         print("asebamodulla killed")
