@@ -59,9 +59,17 @@ class Thymio:
         camera.stop_preview()
         print("saved image to out.png")
 
-    def sens(self):
-        prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
-        return prox_horizontal
+    def controller(self):
+        while True:
+            prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
+            prox_ground = self.aseba.GetVariable("thymio-II", "prox.ground.reflected")
+            # print(prox_horizontal[0])
+            # print(prox_horizontal[1])
+            # print(prox_horizontal[2])
+            # print(prox_horizontal[3])
+            # print(prox_horizontal[4])
+            print(prox_ground[0])
+            print(prox_ground[1])
 
 ############## Bus and aseba setup ######################################
 
@@ -103,20 +111,22 @@ def main():
     robot = Thymio()
 
     # do we need this? 
-    thread = Thread(target=robot.sens)
-    thread.daemon = True
-    thread.start()
+    # thread = Thread(target=robot.controller)
+    # thread.daemon = True
+    # thread.start()
+
+    robot.controller()
  
-    # controller
-    for _ in range(10000):
-        #turn right when detecting wall
-        if robot.sens()[0] > 4150:
-            robot.drive(100,-100)
-        #turn left when detecting wall
-        elif robot.sens()[4] > 4800:
-            robot.drive(-100,100)
-        else:
-            robot.drive(100,100)
+    # # controller
+    # for _ in range(10000):
+    #     #turn right when detecting wall
+    #     if robot.sens()[0] > 4150:
+    #         robot.drive(100,-100)
+    #     #turn left when detecting wall
+    #     elif robot.sens()[4] > 4800:
+    #         robot.drive(-100,100)
+    #     else:
+    #         robot.drive(100,100)
     
     robot.stop()
 #------------------- Main loop end ------------------------
