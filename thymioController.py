@@ -57,10 +57,13 @@ class Thymio:
         result = at_detector.detect(image)
         # navigate down the list to retrieve the right information
 
-    def controller(self):
-        while True:
-            prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
-            prox_ground = self.aseba.GetVariable("thymio-II", "prox.ground.delta")
+    def sensors_horizontal(self):
+        prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
+        return prox_horizontal
+
+    def sensors_ground(self):
+        prox_ground = self.aseba.GetVariable("thymio-II", "prox.ground.delta")
+        return prox_ground
 
 ############## Bus and aseba setup ######################################
 
@@ -98,26 +101,27 @@ class Thymio:
 #------------------ Main loop here -------------------------
 
 def main():
-    robot = Thymio()
+    # sensorThread = Thread(target=robot.sensors)
+    # sensorThread.daemon = True
+    # sensorThread.start()
 
-    # do we need this? 
-    # thread = Thread(target=robot.controller)
-    # thread.daemon = True
-    # thread.start()
-
-    # init controller
-    #robot.controller()
+    # Controller
     while True:
-        robot.initPicture()
-    
-    robot.stop()
+        if robot.sensors_horizontal()[1] > 3000 or robot.sensors_horizontal()[2] > 3000 or robot.sensors_horizontal()[3] > 3000:
+            robot.drive(100,-100)
+        else:
+            robot.drive(100,100)
+
+
 #------------------- Main loop end ------------------------
 
 if __name__ == '__main__':
+    robot = Thymio()
     try:
         main()
     except KeyboardInterrupt:
         print("Stopping robot")
+        robot.stop()
         exit_now = True
         sleep(1)
         os.system("pkill -n asebamedulla")
