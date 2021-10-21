@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # this imports the camera
 
-import pupil_apriltags
+from pupil_apriltags import Detector
 from picamera import PiCamera
 import os
 import numpy as np
@@ -53,16 +53,43 @@ class Thymio:
         self.aseba.SendEventName("motor.target", [left_wheel, right_wheel])
         self.camera.stop_preview()
 
-    def initPicture(self):
+    def apriltagRobotOrientation(self):
         self.camera.resolution = (320, 240)
         self.camera.framerate = 24
-        sleep(2)
         image = np.empty((240, 320, 3), dtype=np.uint8)
+        sleep(5)
         self.camera.capture(image, 'bgr')
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        at_detector = pupil_apriltags.Detector()
-        result = at_detector.detect(image)
-        # navigate down the list to retrieve the right information
+        at_detector = Detector(families='tag36h11',
+                       nthreads=1,
+                       quad_decimate=1.0,
+                       quad_sigma=0.0,
+                       refine_edges=1,
+                       decode_sharpening=0.25,
+                       debug=0)
+        result = at_detector.detect(image, estimate_tag_pose=False, camera_params=None, tag_size=None)
+        print(result)
+        # # #Orientations
+        # orientation = ''
+        # if result in [3,4,5]:
+        #     orientation = 'U'
+        # elif result in [6,7]:
+        #     orientation = 'UR'
+        # elif result in [8]:
+        #     orientation = 'R'
+        # elif result in [9,10]:
+        #     orientation = 'DR'
+        # elif result in [11,12,13]:
+        #     orientation = 'D'
+        # elif result in [14,15]:
+        #     orientation = 'DL'
+        # elif result in [0]:
+        #     orientation = 'L'
+        # elif result in [1,2]:
+        #     orientation = 'UL'
+        
+        # return orientation
+        
 
     def sensors_horizontal(self):
         prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
@@ -127,23 +154,16 @@ def main():
     # sensorThread.start()
     
     
-    scanner_thread = Thread(target=robot.lidar_scan)
-    scanner_thread.daemon = True
-    scanner_thread.start()
-    
+    # scanner_thread = Thread(target=robot.lidar_scan)
+    # scanner_thread.daemon = True
+    # scanner_thread.start()
     
     # Controller
     while True:
-
         #printing lidar scans
-        robot.getScanValues()
-
-        """
-        if robot.sensors_horizontal()[1] > 3000 or robot.sensors_horizontal()[2] > 3000 or robot.sensors_horizontal()[3] > 3000:
-            robot.drive(100,-100)
-        else:
-            robot.drive(100,100)
-        """
+        sleep(3)
+        robot.apriltagRobotOrientation()
+        
 
 #------------------- Main loop end ------------------------
 
