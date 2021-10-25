@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 # this imports the camera
 
-from pupil_apriltags import Detector
+from dt_apriltags import Detector
+import queue
 from picamera import PiCamera
 import os
 import numpy as np
@@ -30,6 +31,7 @@ class Thymio:
         self.lidar = RPLidar(None, self.PORT_NAME)
         #This is where we store the lidar readings
         self.scan_data = [0]*360
+        self.apriltagVal = 'empty'
 
     def getState(self):
         return self.state
@@ -54,42 +56,41 @@ class Thymio:
         self.camera.stop_preview()
 
     def apriltagRobotOrientation(self):
-        self.camera.resolution = (320, 240)
-        self.camera.framerate = 24
-        image = np.empty((240, 320, 3), dtype=np.uint8)
-        sleep(5)
-        self.camera.capture(image, 'bgr')
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        at_detector = Detector(families='tag36h11',
-                       nthreads=1,
-                       quad_decimate=1.0,
-                       quad_sigma=0.0,
-                       refine_edges=1,
-                       decode_sharpening=0.25,
-                       debug=0)
-        result = at_detector.detect(image, estimate_tag_pose=False, camera_params=None, tag_size=None)
-        print(result)
-        # # #Orientations
-        # orientation = ''
-        # if result in [3,4,5]:
-        #     orientation = 'U'
-        # elif result in [6,7]:
-        #     orientation = 'UR'
-        # elif result in [8]:
-        #     orientation = 'R'
-        # elif result in [9,10]:
-        #     orientation = 'DR'
-        # elif result in [11,12,13]:
-        #     orientation = 'D'
-        # elif result in [14,15]:
-        #     orientation = 'DL'
-        # elif result in [0]:
-        #     orientation = 'L'
-        # elif result in [1,2]:
-        #     orientation = 'UL'
-        
-        # return orientation
-        
+        while True:
+            sleep(1)
+            self.camera.resolution = (320, 240)
+            self.camera.framerate = 24
+            image = np.empty((240, 320, 3), dtype=np.uint8)
+            self.camera.capture(image, 'bgr')
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            at_detector = Detector()
+            result = at_detector.detect(image)
+            orientation = ''
+
+            try:
+                result = result[0].tag_id
+                #Orientations
+                if result in [3,4,5]:
+                    orientation = 'U'
+                elif result in [6,7]:
+                    orientation = 'UR'
+                elif result in [8]:
+                    orientation = 'R'
+                elif result in [9,10]:
+                    orientation = 'DR'
+                elif result in [11,12,13]:
+                    orientation = 'D'
+                elif result in [14,15]:
+                    orientation = 'DL'
+                elif result in [0]:
+                    orientation = 'L'
+                elif result in [1,2,19]:
+                    orientation = 'UL'
+            except:
+                result = []
+                orientation = 'empty'
+
+            self.apriltagVal = orientation
 
     def sensors_horizontal(self):
         prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
@@ -157,18 +158,26 @@ def main():
     # scanner_thread = Thread(target=robot.lidar_scan)
     # scanner_thread.daemon = True
     # scanner_thread.start()
-    
-    # Controller
+
+    apriltag_thread = Thread(target=robot.apriltagRobotOrientation)
+    apriltag_thread.daemon = True
+    apriltag_thread.start()
+        
     while True:
+        print(robot.apriltagVal)
+
+    # Controller
+    #while True:
         #printing lidar scans
-        sleep(3)
-        robot.apriltagRobotOrientation()
+       # sleep(3)
+        
         
 
 #------------------- Main loop end ------------------------
 
 if __name__ == '__main__':
     robot = Thymio()
+    q = queue.Queue()
     try:
         main()
     except KeyboardInterrupt:
