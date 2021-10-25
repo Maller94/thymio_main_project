@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from time import sleep
 import dbus
 import dbus.mainloop.glib
+from map import *
 from math import cos, sin, pi, floor
 from threading import Thread
 from random import random
@@ -77,14 +78,49 @@ class Thymio:
             #if(self.exit_now):
             #    return
             for (_, angle, distance) in scan:
-                self.scan_data[min([359, floor(angle)])] = distance
+                self.scan_data[min([359, floor(angle)])] = (floor(angle), distance)
 
     def getScanValues(self):
-        print(self.scan_values)
+        print(self.scan_data)
+        print(len(self.scan_data))
+        sleep(2)
     
     def lidar_stop(self):
         self.lidar.stop()
         self.lidar.disconnect()
+
+    # get forward, right, backward, left distances
+    def lidar_orientation_values(self, o): 
+        f = self.scan_data[180]
+        r = self.scan_data[0]
+        b = self.scan_data[270]
+        l = self.scan_data[90]
+        
+        # ORIENTATION from camera thread
+        o = "U"
+        # distances on x,y axes
+        x = 0
+        y = 0
+        
+        if o == "U":
+            x = r
+            y = b
+            return (x,y)
+        elif o == "D":
+            x = l
+            y = f
+            return (x,y)
+        elif o == "R":
+            x = b
+            y = r
+            return (x,y)
+        elif o == "L":
+            x = f
+            y = l
+            return (x,y)
+    # not using a range of values right now - might be needed
+    # need a function to calculate if the distances make sense? 
+        # they need to sum either 1920 (horizontal) or 1130(vertical) roughly
 
 
 ############## Bus and aseba setup ######################################
