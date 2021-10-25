@@ -3,14 +3,14 @@ import numpy as np
 
 # variables 
 o = "U"
-# robot position = 8
+# robot position = 11
 
 # create map
 map = np.zeros(16*10).reshape(10,16)
 
 #create coordinate lists
-xi = 120
-yi = 113
+xi = 0
+yi = 0
 x_axis_values = [0]*16
 y_axis_values = [0]*10
 
@@ -24,8 +24,8 @@ for i in range(len(y_axis_values)):
 
 # update map with robot's position
 def robotPos(x,y): 
-    map[return_posY(y)][return_posX(x)] = 8
-    old = tuple(np.argwhere(map == 8))
+    map[return_posY(y)][return_posX(x)] = 11
+    old = tuple(np.argwhere(map == 11))
     print(map)
     map[old[0][0]][old[0][1]] = 0
 

@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from time import sleep
 import dbus
 import dbus.mainloop.glib
-from map import *
+from map import robotPos
 from math import cos, sin, pi, floor
 from threading import Thread
 from random import random
@@ -83,15 +83,15 @@ class Thymio:
                     orientation = 'D'
                 elif result in [14,15]:
                     orientation = 'DL'
-                elif result in [0]:
+                elif result in [0,19]:
                     orientation = 'L'
-                elif result in [1,2,19]:
+                elif result in [1,2]:
                     orientation = 'UL'
             except:
                 result = []
-                orientation = 'empty'
+                orientation = ('empty', 'empty')
 
-            self.apriltagVal = orientation
+            self.apriltagVal = (orientation,result)
 
     def sensors_horizontal(self):
         prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
@@ -106,7 +106,7 @@ class Thymio:
             #if(self.exit_now):
             #    return
             for (_, angle, distance) in scan:
-                self.scan_data[min([359, floor(angle)])] = (floor(angle), distance)
+                self.scan_data[min([359, floor(angle)])] = distance
 
     def getScanValues(self):
         print(self.scan_data)
@@ -119,33 +119,54 @@ class Thymio:
 
     # get forward, right, backward, left distances
     def lidar_orientation_values(self, o): 
-        f = self.scan_data[180]
-        r = self.scan_data[0]
-        b = self.scan_data[270]
-        l = self.scan_data[90]
-        
-        # ORIENTATION from camera thread
-        o = "U"
-        # distances on x,y axes
-        x = 0
-        y = 0
-        
-        if o == "U":
-            x = r
-            y = b
-            return (x,y)
-        elif o == "D":
-            x = l
-            y = f
-            return (x,y)
-        elif o == "R":
-            x = b
-            y = r
-            return (x,y)
-        elif o == "L":
-            x = f
-            y = l
-            return (x,y)
+        try:
+            f = self.scan_data[180]
+            b = self.scan_data[0]
+            r = self.scan_data[270]
+            l = self.scan_data[90]
+            ur = self.scan_data[225]
+            dr = self.scan_data[315]
+            ul = self.scan_data[135]
+            dl = self.scan_data[45]
+            # distances on x,y axes
+            x = 0
+            y = 0
+            
+            # set x and y to be distances to the 0,0 coordinate
+            if o == "U":
+                x = l
+                y = b
+                return (x,y)
+            elif o == "D":
+                x = r
+                y = f
+                return (x,y)
+            elif o == "R":
+                x = b
+                y = r
+                return (x,y)
+            elif o == "L":
+                x = f
+                y = l
+                return (x,y)
+            elif o == "DL": 
+                x = ur
+                y = ul
+                return (x,y)
+            elif o == "UL":
+                x = ul
+                y = l
+                return (x,y)
+            elif o == "UR":
+                x = dl
+                y = dr
+                return (x,y)
+            elif o == "DR":
+                x = dr
+                y = ur
+                return (x,y)
+        except:
+            pass
     # not using a range of values right now - might be needed
     # need a function to calculate if the distances make sense? 
         # they need to sum either 1920 (horizontal) or 1130(vertical) roughly
@@ -190,23 +211,25 @@ def main():
     # sensorThread.daemon = True
     # sensorThread.start()
     
-    
-    # scanner_thread = Thread(target=robot.lidar_scan)
-    # scanner_thread.daemon = True
-    # scanner_thread.start()
+    scanner_thread = Thread(target=robot.lidar_scan)
+    scanner_thread.daemon = True
+    scanner_thread.start()
 
     apriltag_thread = Thread(target=robot.apriltagRobotOrientation)
     apriltag_thread.daemon = True
     apriltag_thread.start()
-        
-    while True:
-        print(robot.apriltagVal)
 
-    # Controller
-    #while True:
-        #printing lidar scans
-       # sleep(3)
+    # Controller        
+    while True:
+        sleep(1)
+        #print(robot.apriltagVal)
         
+        #print(robot.lidar_orientation_values(robot.apriltagVal[0]))
+        try: 
+            x,y = robot.lidar_orientation_values(robot.apriltagVal[0])
+            robotPos(x,y)
+        except:
+            pass
         
 
 #------------------- Main loop end ------------------------
