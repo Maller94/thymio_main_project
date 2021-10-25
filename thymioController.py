@@ -2,7 +2,6 @@
 # this imports the camera
 
 from dt_apriltags import Detector
-import queue
 from picamera import PiCamera
 import os
 import numpy as np
@@ -68,8 +67,20 @@ class Thymio:
             result = at_detector.detect(image)
             orientation = ''
 
-            try:
+            if len(result) > 1:
+                center_point = 120
+                tags = []
+                for tag in result:
+                    tags.append((abs(tag.center[0]-center_point),tag.tag_id))
+                result_tag = min(tags)
+                (_,id) = result_tag
+                result = id
+                print(result)
+            else:
                 result = result[0].tag_id
+                print(result)
+
+            try:
                 #Orientations
                 if result in [3,4,5]:
                     orientation = 'U'
@@ -196,11 +207,11 @@ def main():
     # scanner_thread.start()
 
     apriltag_thread = Thread(target=robot.apriltagRobotOrientation)
-    apriltag_thread.daemon = True
+    #apriltag_thread.daemon = True
     apriltag_thread.start()
         
-    while True:
-        print(robot.apriltagVal)
+    # while True:
+    #     print(robot.apriltagVal)
 
     # Controller
     #while True:
@@ -213,7 +224,6 @@ def main():
 
 if __name__ == '__main__':
     robot = Thymio()
-    q = queue.Queue()
     try:
         main()
     except KeyboardInterrupt:
