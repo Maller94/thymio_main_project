@@ -1,6 +1,7 @@
 from bisect import bisect_left
 import numpy as np 
 
+
 # robot position = 11
 
 # create map
@@ -22,18 +23,19 @@ for i in range(len(y_axis_values)):
 
 # update map with robot's position
 def robotPos(x,y): 
+    #global variable accesible in all scopes (used in printMap())
+    global newMap
     map[return_posY(y)][return_posX(x)] = 11
+    newMap = np.copy(map)
     old = tuple(np.argwhere(map == 11))
-    print(np.flip(map,0))
     map[old[0][0]][old[0][1]] = 0
-
+    return newMap
 
 # update map with robot's position and setting that to be swamp 
 def detectedSwamp(x,y, o): 
     belief(return_posX(x), return_posY(y), o)
     map[return_posY(y)][return_posX(x)] = 2
-    print(np.flip(map,0))
-    #print(map)
+    print(map)
 
 
 # function to update surrounding boxes to belief system
@@ -47,7 +49,7 @@ def belief(x,y, o):
     if o == "U":
         for i in range(3): 
             map[y][(x-1)+i] = 1
-            map[y+1][(x-1)+i] = 1
+            map[y-1][(x-1)+i] = 1
     # if robot is looking right
     if o == "R":
         for i in range(3): 
@@ -57,11 +59,11 @@ def belief(x,y, o):
     if o == "D":
         for i in range(3): 
             map[y][(x-1)+i] = 1
-            map[y-1][(x-1)+i] = 1
+            map[y+1][(x-1)+i] = 1
 
 def deleteSwamp(x,y): 
     map[return_posY(y)][return_posX(x)] = 0
-    print(np.flip(map,0))
+    print(map)
 
 # returns closest number to values in list - use this to return index/x_coord
 def take_closest(myList, myNumber):
@@ -85,3 +87,6 @@ def return_posX(number):
 def return_posY(number): 
     return y_axis_values.index(take_closest(y_axis_values,number))
 
+# print map 
+def printMap():
+    print(newMap)
