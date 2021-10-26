@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from time import sleep
 import dbus
 import dbus.mainloop.glib
-from map import robotPos
+from map import robotPos, printMap
 from math import cos, sin, pi, floor
 from threading import Thread
 from random import random
@@ -22,6 +22,7 @@ from adafruit_rplidar import RPLidar
 class Thymio:
     state = 'initial'
 
+    ### INIT ###
     def __init__(self):
         self.aseba = self.setup()
         self.camera = PiCamera()
@@ -32,6 +33,8 @@ class Thymio:
         #This is where we store the lidar readings
         self.scan_data = [0]*360
         self.apriltagVal = 'empty'
+        self.sensorHorizontalValues = []
+        self.sensorGroundValues = []
 
     def getState(self):
         return self.state
@@ -39,25 +42,22 @@ class Thymio:
     def setState(self,newState):
         self.state = newState
 
-    # max speed is 500 = 20cm/s
-    def drive(self, left_wheel_speed, right_wheel_speed):
-        print("Left_wheel_speed: " + str(left_wheel_speed))
-        print("Right_wheel_speed: " + str(right_wheel_speed))
-        
-        left_wheel = left_wheel_speed
-        right_wheel = right_wheel_speed
-        
-        self.aseba.SendEventName("motor.target", [left_wheel, right_wheel])
 
+    ### DRIVER ###
+    # max speed is 500 = 20cm/s
+    def drive(self, left_wheel, right_wheel):      
+        self.aseba.SendEventName("motor.target", [left_wheel, right_wheel])
+            
     def stop(self):
         left_wheel = 0
         right_wheel = 0
         self.aseba.SendEventName("motor.target", [left_wheel, right_wheel])
-        self.camera.stop_preview()
 
+
+    ### APRILTAG ###
     def apriltagRobotOrientation(self):
         while True:
-            sleep(1)
+            sleep(2)
             self.camera.resolution = (320, 240)
             self.camera.framerate = 24
             image = np.empty((240, 320, 3), dtype=np.uint8)
@@ -73,11 +73,11 @@ class Thymio:
                 result_tag = min(tags)
                 (_,id) = result_tag
                 result = id
-                print(id)
             else:
-                result = result[0].tag_id
-                print(result)
-
+                try: 
+                    result = result[0].tag_id
+                except:
+                    result = []
             try:
                 #Orientations
                 if result in [3,4,5]:
@@ -97,19 +97,23 @@ class Thymio:
                 elif result in [1,2]:
                     orientation = 'UL'
             except:
-                result = []
                 orientation = ('empty', 'empty')
 
             self.apriltagVal = (orientation,result)
 
+
+    ### SENSORS ###
     def sensors_horizontal(self):
-        prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
-        return prox_horizontal
+        while True: 
+            prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
+            self.sensorHorizontalValues = prox_horizontal
 
     def sensors_ground(self):
-        prox_ground = self.aseba.GetVariable("thymio-II", "prox.ground.delta")
-        return prox_ground
+        while True: 
+            prox_ground = self.aseba.GetVariable("thymio-II", "prox.ground.delta")
+            self.sensorGroundValues = prox_ground
 
+    ### LIDAR ###
     def lidar_scan(self):
         for scan in self.lidar.iter_scans():
             #if(self.exit_now):
@@ -216,29 +220,48 @@ class Thymio:
 #------------------ Main loop here -------------------------
 
 def main():
-    # sensorThread = Thread(target=robot.sensors)
-    # sensorThread.daemon = True
-    # sensorThread.start()
-    
+    ### Threads ###
+    sensorGroundThread = Thread(target=robot.sensors_ground)
+    sensorGroundThread.daemon = True
+    sensorGroundThread.start()
+        
+    #sensorHorizontalThread = Thread(target=robot.sensors_horizontal)
+    #sensorHorizontalThread.daemon = True
+    #sensorHorizontalThread.start()
+
     scanner_thread = Thread(target=robot.lidar_scan)
     scanner_thread.daemon = True
     scanner_thread.start()
-
-    apriltag_thread = Thread(target=robot.apriltagRobotOrientation)
+    
+    #apriltag_thread = Thread(target=robot.apriltagRobotOrientation)
     #apriltag_thread.daemon = True
-    apriltag_thread.start()
-
-    # Controller        
+    #apriltag_thread.start()
+    
+    ### Controller ###
     while True:
-        sleep(1)
         #print(robot.apriltagVal)
-        
         #print(robot.lidar_orientation_values(robot.apriltagVal[0]))
+        #x,y = robot.lidar_orientation_values(robot.apriltagVal[0])
+        #robotPos(x,y)
+        #printMap()
+        
         try: 
-            x,y = robot.lidar_orientation_values(robot.apriltagVal[0])
-            robotPos(x,y)
+            if robot.scan_data[150] < 150: 
+                # turn right
+                robot.drive(200, -200)
+            elif robot.scan_data[210] < 150: 
+                # turn left
+                robot.drive(-200, 200)
+            elif robot.sensorGroundValues[0] < 500 or robot.sensorGroundValues[1] < 500:
+                robot.drive(-200,-200)
+                sleep(1)
+                robot.drive(200,-200)
+                sleep(1)
+            else: 
+                robot.drive(200,200)
         except:
-            pass
+            print("nothing")
+            sleep(1)   
         
 
 #------------------- Main loop end ------------------------
