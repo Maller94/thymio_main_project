@@ -26,7 +26,7 @@ for i in range(len(y_axis_values)):
 def robotPos(x,y): 
     map[return_posY(y)][return_posX(x)] = 11
     old = tuple(np.argwhere(map == 11))
-    print(map)
+    print(np.flip(map,0))
     map[old[0][0]][old[0][1]] = 0
 
 
@@ -34,7 +34,8 @@ def robotPos(x,y):
 def detectedSwamp(x,y): 
     belief(return_posX(x), return_posY(y))
     map[return_posY(y)][return_posX(x)] = 2
-    print(map)
+    print(np.flip(map,0))
+
 
 # function to update surrounding boxes to belief system
 def belief(x,y): 
@@ -61,7 +62,7 @@ def belief(x,y):
 
 def deleteSwamp(x,y): 
     map[return_posY(y)][return_posX(x)] = 0
-    print(map)
+    print(np.flip(map,0))
 
 # returns closest number to values in list - use this to return index/x_coord
 def take_closest(myList, myNumber):
