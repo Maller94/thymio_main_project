@@ -1,8 +1,6 @@
 from bisect import bisect_left
 import numpy as np 
 
-# variables 
-o = "U"
 # robot position = 11
 
 # create map
@@ -31,14 +29,15 @@ def robotPos(x,y):
 
 
 # update map with robot's position and setting that to be swamp 
-def detectedSwamp(x,y): 
-    belief(return_posX(x), return_posY(y))
+def detectedSwamp(x,y, o): 
+    belief(return_posX(x), return_posY(y), o)
     map[return_posY(y)][return_posX(x)] = 2
     print(np.flip(map,0))
+    #print(map)
 
 
 # function to update surrounding boxes to belief system
-def belief(x,y): 
+def belief(x,y, o): 
     # if robot is looking left
     if o == "L":
         for i in range(3): 
@@ -48,7 +47,7 @@ def belief(x,y):
     if o == "U":
         for i in range(3): 
             map[y][(x-1)+i] = 1
-            map[y-1][(x-1)+i] = 1
+            map[y+1][(x-1)+i] = 1
     # if robot is looking right
     if o == "R":
         for i in range(3): 
@@ -58,7 +57,7 @@ def belief(x,y):
     if o == "D":
         for i in range(3): 
             map[y][(x-1)+i] = 1
-            map[y+1][(x-1)+i] = 1
+            map[y-1][(x-1)+i] = 1
 
 def deleteSwamp(x,y): 
     map[return_posY(y)][return_posX(x)] = 0
