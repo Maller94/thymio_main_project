@@ -69,13 +69,11 @@ class Thymio:
 
             if len(result) > 1:
                 center_point = 120
-                tags = []
-                for tag in result:
-                    tags.append((abs(tag.center[0]-center_point),tag.tag_id))
+                tags = [(abs(x.center[0]-center_point),x.tag_id) for x in result]
                 result_tag = min(tags)
                 (_,id) = result_tag
                 result = id
-                print(result)
+                print(id)
             else:
                 result = result[0].tag_id
                 print(result)
