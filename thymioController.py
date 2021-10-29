@@ -13,16 +13,15 @@ import matplotlib.pyplot as plt
 from time import sleep
 import dbus
 import dbus.mainloop.glib
-from map import robotPos, printMap
+import map 
 from math import cos, sin, pi, floor
 from threading import Thread
 from random import random
 from adafruit_rplidar import RPLidar
 
 class Thymio:
-    state = 'initial'
 
-    ### INIT ###
+    ############## INIT ###############################
     def __init__(self):
         self.aseba = self.setup()
         self.camera = PiCamera()
@@ -35,6 +34,8 @@ class Thymio:
         self.apriltagVal = 'empty'
         self.sensorHorizontalValues = []
         self.sensorGroundValues = []
+        # initial state is always to map surroundings
+        self.state = 'initial'
 
     def getState(self):
         return self.state
@@ -43,7 +44,7 @@ class Thymio:
         self.state = newState
 
 
-    ### DRIVER ###
+    ############## DRIVER ###############################
     # max speed is 500 = 20cm/s
     def drive(self, left_wheel, right_wheel):      
         self.aseba.SendEventName("motor.target", [left_wheel, right_wheel])
@@ -54,8 +55,9 @@ class Thymio:
         self.aseba.SendEventName("motor.target", [left_wheel, right_wheel])
 
 
-    ### APRILTAG ###
+    ############## APRILTAG ###############################
     def apriltagRobotOrientation(self):
+        orientation = ''
         while True:
             sleep(2)
             self.camera.resolution = (320, 240)
@@ -65,7 +67,6 @@ class Thymio:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             at_detector = Detector()
             result = at_detector.detect(image)
-            orientation = ''
 
             if len(result) > 1:
                 center_point = 120
@@ -97,12 +98,13 @@ class Thymio:
                 elif result in [1,2]:
                     orientation = 'UL'
             except:
-                orientation = ('empty', 'empty')
+                orientation = 'empty'
+            
+            if orientation != 'empty':
+                self.apriltagVal = (orientation,result)
 
-            self.apriltagVal = (orientation,result)
 
-
-    ### SENSORS ###
+    ############## SENSORS ###############################
     def sensors_horizontal(self):
         while True: 
             prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
@@ -113,7 +115,8 @@ class Thymio:
             prox_ground = self.aseba.GetVariable("thymio-II", "prox.ground.delta")
             self.sensorGroundValues = prox_ground
 
-    ### LIDAR ###
+
+    ############## LIDAR ###############################
     def lidar_scan(self):
         for scan in self.lidar.iter_scans():
             #if(self.exit_now):
@@ -185,6 +188,29 @@ class Thymio:
         # they need to sum either 1920 (horizontal) or 1130(vertical) roughly
 
 
+    ############## State machines ###############################
+    def stateMapping(self): 
+        while True:
+            if self.getState() == "mapping":
+                # This method simululates first state in the state machines (MAPPING)
+                if self.scan_data[140] < 150: 
+                    # turn right
+                    self.drive(200, 0)
+                elif self.scan_data[220] < 150: 
+                    # turn left
+                    self.drive(0, 200)
+                elif self.sensorGroundValues[0] < 500 or self.sensorGroundValues[1] < 500:
+                    # drive back, turn right 
+                    self.drive(-200,-200)
+                    sleep(1)
+                    self.drive(200,-200)
+                    sleep(1)
+                else: 
+                    # drive forward
+                    self.drive(200,200)
+            else: 
+                self.stop()
+
 ############## Bus and aseba setup ######################################
 
     def setup(self):
@@ -220,48 +246,25 @@ class Thymio:
 #------------------ Main loop here -------------------------
 
 def main():
-    ### Threads ###
-    sensorGroundThread = Thread(target=robot.sensors_ground)
-    sensorGroundThread.daemon = True
-    sensorGroundThread.start()
-        
-    #sensorHorizontalThread = Thread(target=robot.sensors_horizontal)
-    #sensorHorizontalThread.daemon = True
-    #sensorHorizontalThread.start()
-
-    scanner_thread = Thread(target=robot.lidar_scan)
-    scanner_thread.daemon = True
-    scanner_thread.start()
+    ############## Controller ###############################
+    # find apriltag, then setState to "mapping"
+    robot.setState("mapping")
     
-    #apriltag_thread = Thread(target=robot.apriltagRobotOrientation)
-    #apriltag_thread.daemon = True
-    #apriltag_thread.start()
-    
-    ### Controller ###
     while True:
         #print(robot.apriltagVal)
         #print(robot.lidar_orientation_values(robot.apriltagVal[0]))
-        #x,y = robot.lidar_orientation_values(robot.apriltagVal[0])
-        #robotPos(x,y)
-        #printMap()
         
-        try: 
-            if robot.scan_data[150] < 150: 
-                # turn right
-                robot.drive(200, -200)
-            elif robot.scan_data[210] < 150: 
-                # turn left
-                robot.drive(-200, 200)
-            elif robot.sensorGroundValues[0] < 500 or robot.sensorGroundValues[1] < 500:
-                robot.drive(-200,-200)
-                sleep(1)
-                robot.drive(200,-200)
-                sleep(1)
-            else: 
-                robot.drive(200,200)
+        try:
+            sleep(1)
+            x,y = robot.lidar_orientation_values(robot.apriltagVal[0])
+            map.robotPos(x,y)
+            #if robot.sensorGroundValues()  ----- FOR NEXT TIME 
+            #map.printMap()
+
         except:
             print("nothing")
-            sleep(1)   
+            sleep(1) 
+         
         
 
 #------------------- Main loop end ------------------------
@@ -269,8 +272,30 @@ def main():
 if __name__ == '__main__':
     robot = Thymio()
     try:
+        ############## Threads ###############################
+        sensorGroundThread = Thread(target=robot.sensors_ground)
+        sensorGroundThread.daemon = True
+        sensorGroundThread.start()
+            
+        #sensorHorizontalThread = Thread(target=robot.sensors_horizontal)
+        #sensorHorizontalThread.daemon = True
+        #sensorHorizontalThread.start()
+
+        scanner_thread = Thread(target=robot.lidar_scan)
+        scanner_thread.daemon = True
+        scanner_thread.start()
+        
+        apriltag_thread = Thread(target=robot.apriltagRobotOrientation)
+        apriltag_thread.daemon = True
+        apriltag_thread.start()
+
+        mapping_thread = Thread(target=robot.stateMapping)
+        mapping_thread.daemon = True
+        mapping_thread.start()
         main()
     except KeyboardInterrupt:
+        robot.setState("exit")
+        sleep(1)
         print("Stopping robot")
         robot.stop()
         exit_now = True
