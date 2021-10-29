@@ -5,13 +5,13 @@ import numpy as np
 # robot position = 11
 
 # create map
-map = np.zeros(16*10).reshape(10,16)
+map = np.zeros(17*11).reshape(11,17)
 
 #create coordinate lists
 xi = 0
 yi = 0
-x_axis_values = [0]*16
-y_axis_values = [0]*10
+x_axis_values = [0]*17
+y_axis_values = [0]*11
 
 for i in range(len(x_axis_values)):
     x_axis_values[i] = xi
@@ -23,20 +23,20 @@ for i in range(len(y_axis_values)):
 
 # update map with robot's position
 def robotPos(x,y): 
-    #global variable accesible in all scopes (used in printMap())
-    global newMap
-    map[return_posY(y)][return_posX(x)] = 11
-    newMap = np.copy(map)
     old = tuple(np.argwhere(map == 11))
-    map[old[0][0]][old[0][1]] = 0
-    return newMap
+    try: 
+        map[old[0][0]][old[0][1]] = 0
+    except: 
+        pass
+    map[return_posY(y)][return_posX(x)] = 11
+    return map
+    
 
 # update map with robot's position and setting that to be swamp 
 def detectedSwamp(x,y, o): 
     belief(return_posX(x), return_posY(y), o)
     map[return_posY(y)][return_posX(x)] = 2
-    print(map)
-
+    return map
 
 # function to update surrounding boxes to belief system
 def belief(x,y, o): 
@@ -63,7 +63,8 @@ def belief(x,y, o):
 
 def deleteSwamp(x,y): 
     map[return_posY(y)][return_posX(x)] = 0
-    print(map)
+    return map
+
 
 # returns closest number to values in list - use this to return index/x_coord
 def take_closest(myList, myNumber):
@@ -89,4 +90,4 @@ def return_posY(number):
 
 # print map 
 def printMap():
-    print(newMap)
+    print(map)
