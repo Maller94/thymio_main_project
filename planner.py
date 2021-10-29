@@ -31,9 +31,9 @@ class Maze:
         for j, row in enumerate(maze):
             for i, col in enumerate(row):
                 if (j, i) in pos:
-                    #print(' + ', end="")
                     mapInner[j][i] = 4
-                    l1.append((j,i))
+                    #print(' + ', end="")
+                    #l1.append((j,i))
                 #else:
                     #print(str(col), end="")
         return mapInner
