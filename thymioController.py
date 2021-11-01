@@ -55,9 +55,17 @@ class Thymio:
         self.aseba.SendEventName("motor.target", [left_wheel, right_wheel])
 
 
+        def turnRandom(self): 
+            r = random.choice([-200, 200])
+            l = 0
+            if r > 0: 
+                l = -200
+            else: 
+                l = 200
+
     ############## APRILTAG ###############################
     def apriltagRobotOrientation(self):
-        orientation = ''
+        orientation = 'empty'
         while True:
             sleep(2)
             self.camera.resolution = (320, 240)
@@ -93,15 +101,17 @@ class Thymio:
                     orientation = 'D'
                 elif result in [14,15]:
                     orientation = 'DL'
-                elif result in [0,19]:
+                elif result in [0,17]:
                     orientation = 'L'
                 elif result in [1,2]:
                     orientation = 'UL'
+                elif result in [19]:
+                    orientation = 'found_buddy'
             except:
                 orientation = 'empty'
             
             if orientation != 'empty':
-                self.apriltagVal = (orientation,result)
+                self.apriltagVal = orientation
 
 
     ############## SENSORS ###############################
@@ -193,23 +203,24 @@ class Thymio:
         while True:
             if self.getState() == "mapping":
                 # This method simululates first state in the state machines (MAPPING)
-                if self.scan_data[140] < 150: 
+                s_right = sum(self.scan_data[135:145])/len(self.scan_data[135:145])
+                s_left = sum(self.scan_data[215:225])/len(self.scan_data[215:225])
+                
+                if s_right < 150: 
                     # turn right
                     self.drive(200, 0)
-                elif self.scan_data[220] < 150: 
+                elif s_left < 150: 
                     # turn left
                     self.drive(0, 200)
                 elif self.sensorGroundValues[0] < 500 or self.sensorGroundValues[1] < 500:
                     # drive back, turn right 
                     self.drive(-200,-200)
                     sleep(1)
-                    self.drive(200,-200)
+                    self.turnRandom()
                     sleep(1)
                 else: 
                     # drive forward
                     self.drive(200,200)
-            else: 
-                self.stop()
 
 ############## Bus and aseba setup ######################################
 
@@ -247,23 +258,32 @@ class Thymio:
 
 def main():
     ############## Controller ###############################
-    # find apriltag, then setState to "mapping"
-    robot.setState("mapping")
     
+    # Mapping
+    robot.setState("mapping")
     while True:
-        #print(robot.apriltagVal)
-        #print(robot.lidar_orientation_values(robot.apriltagVal[0]))
-        
+        sleep(1)
         try:
-            sleep(1)
-            x,y = robot.lidar_orientation_values(robot.apriltagVal[0])
-            map.robotPos(x,y)
-            #if robot.sensorGroundValues()  ----- FOR NEXT TIME 
-            #map.printMap()
-
+            x,y = robot.lidar_orientation_values(robot.apriltagVal)
+            print(map.robotPos(x,y))
         except:
-            print("nothing")
-            sleep(1) 
+            print(robot.apriltagVal)
+            pass
+        #print(map.robotPos(x,y))
+        if(robot.apriltagVal == 'found_buddy'):
+            break
+
+    #### change state ####        
+    robot.setState('found_buddy')
+    robot.stop()
+    print(robot.getState())
+    ######################
+    
+    # Search
+
+
+
+    # Return
          
         
 
@@ -281,6 +301,16 @@ if __name__ == '__main__':
         #sensorHorizontalThread.daemon = True
         #sensorHorizontalThread.start()
 
+        # Piece of program to prevent RPLIDAREXCEPTION
+        try:
+            robot.lidar.stop()
+            robot.lidar.disconnect()
+            robot.PORT_NAME = '/dev/ttyUSB0'
+            robot.lidar = RPLidar(None, robot.PORT_NAME)
+        except:
+            pass
+        ###############################################
+
         scanner_thread = Thread(target=robot.lidar_scan)
         scanner_thread.daemon = True
         scanner_thread.start()
@@ -292,8 +322,9 @@ if __name__ == '__main__':
         mapping_thread = Thread(target=robot.stateMapping)
         mapping_thread.daemon = True
         mapping_thread.start()
+        
         main()
-    except KeyboardInterrupt:
+    except:
         robot.setState("exit")
         sleep(1)
         print("Stopping robot")
