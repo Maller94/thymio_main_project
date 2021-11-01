@@ -41,7 +41,7 @@ def detectedSwamp(x,y, o):
 # function to update surrounding boxes to belief system
 def belief(x,y, o): 
     # if robot is looking left
-    if o == "L":
+    if o == "L" or o == "UL" or o == "DL":
         for i in range(3): 
             map[(y-1)+i][x] = 1
             map[(y-1)+i][x-1] = 1
@@ -51,7 +51,7 @@ def belief(x,y, o):
             map[y][(x-1)+i] = 1
             map[y-1][(x-1)+i] = 1
     # if robot is looking right
-    if o == "R":
+    if o == "R" or o == "UR" or o == "DR":
         for i in range(3): 
             map[(y-1)+i][x] = 1
             map[(y-1)+i][x+1] = 1

@@ -1,6 +1,15 @@
 #!/usr/bin/python3
 # this imports the camera
 
+import map
+from adafruit_rplidar import RPLidar
+from random import random
+from threading import Thread
+from math import cos, sin, pi, floor
+import dbus.mainloop.glib
+import dbus
+from time import sleep
+import matplotlib.pyplot as plt
 from dt_apriltags import Detector
 from picamera import PiCamera
 import os
@@ -9,15 +18,7 @@ import cv2
 # initialize asebamedulla in background and wait 0.3s to let
 # asebamedulla startup
 os.system("(asebamedulla ser:name=Thymio-II &) && sleep 0.3")
-import matplotlib.pyplot as plt
-from time import sleep
-import dbus
-import dbus.mainloop.glib
-import map 
-from math import cos, sin, pi, floor
-from threading import Thread
-from random import random
-from adafruit_rplidar import RPLidar
+
 
 class Thymio:
 
@@ -29,7 +30,7 @@ class Thymio:
         # Setup the RPLidar
         self.PORT_NAME = '/dev/ttyUSB0'
         self.lidar = RPLidar(None, self.PORT_NAME)
-        #This is where we store the lidar readings
+        # This is where we store the lidar readings
         self.scan_data = [0]*360
         self.apriltagVal = 'empty'
         self.sensorHorizontalValues = []
@@ -39,29 +40,19 @@ class Thymio:
 
     def getState(self):
         return self.state
-    
-    def setState(self,newState):
-        self.state = newState
 
+    def setState(self, newState):
+        self.state = newState
 
     ############## DRIVER ###############################
     # max speed is 500 = 20cm/s
-    def drive(self, left_wheel, right_wheel):      
+    def drive(self, left_wheel, right_wheel):
         self.aseba.SendEventName("motor.target", [left_wheel, right_wheel])
-            
+
     def stop(self):
         left_wheel = 0
         right_wheel = 0
         self.aseba.SendEventName("motor.target", [left_wheel, right_wheel])
-
-
-        def turnRandom(self): 
-            r = random.choice([-200, 200])
-            l = 0
-            if r > 0: 
-                l = -200
-            else: 
-                l = 200
 
     ############## APRILTAG ###############################
     def apriltagRobotOrientation(self):
@@ -78,58 +69,61 @@ class Thymio:
 
             if len(result) > 1:
                 center_point = 120
-                tags = [(abs(x.center[0]-center_point),x.tag_id) for x in result]
+                tags = [(abs(x.center[0]-center_point), x.tag_id)
+                        for x in result]
                 result_tag = min(tags)
-                (_,id) = result_tag
+                (_, id) = result_tag
                 result = id
             else:
-                try: 
+                try:
                     result = result[0].tag_id
                 except:
                     result = []
             try:
-                #Orientations
-                if result in [3,4,5]:
+                # Orientations
+                if result in [3, 4, 5]:
                     orientation = 'U'
-                elif result in [6,7]:
+                elif result in [6, 7]:
                     orientation = 'UR'
                 elif result in [8]:
                     orientation = 'R'
-                elif result in [9,10]:
+                elif result in [9, 10]:
                     orientation = 'DR'
-                elif result in [11,12,13]:
+                elif result in [11, 12, 13]:
                     orientation = 'D'
-                elif result in [14,15]:
+                elif result in [14, 15]:
                     orientation = 'DL'
-                elif result in [0,17]:
+                elif result in [0, 17]:
                     orientation = 'L'
-                elif result in [1,2]:
+                elif result in [1, 2]:
                     orientation = 'UL'
                 elif result in [19]:
                     orientation = 'found_buddy'
             except:
                 orientation = 'empty'
-            
+
             if orientation != 'empty':
                 self.apriltagVal = orientation
 
-
     ############## SENSORS ###############################
+
     def sensors_horizontal(self):
-        while True: 
-            prox_horizontal = self.aseba.GetVariable("thymio-II", "prox.horizontal")
+        while True:
+            prox_horizontal = self.aseba.GetVariable(
+                "thymio-II", "prox.horizontal")
             self.sensorHorizontalValues = prox_horizontal
 
     def sensors_ground(self):
-        while True: 
-            prox_ground = self.aseba.GetVariable("thymio-II", "prox.ground.delta")
+        while True:
+            prox_ground = self.aseba.GetVariable(
+                "thymio-II", "prox.ground.delta")
             self.sensorGroundValues = prox_ground
 
-
     ############## LIDAR ###############################
+
     def lidar_scan(self):
         for scan in self.lidar.iter_scans():
-            #if(self.exit_now):
+            # if(self.exit_now):
             #    return
             for (_, angle, distance) in scan:
                 self.scan_data[min([359, floor(angle)])] = distance
@@ -138,13 +132,13 @@ class Thymio:
         print(self.scan_data)
         print(len(self.scan_data))
         sleep(2)
-    
+
     def lidar_stop(self):
         self.lidar.stop()
         self.lidar.disconnect()
 
     # get forward, right, backward, left distances
-    def lidar_orientation_values(self, o): 
+    def lidar_orientation_values(self, o):
         try:
             f = self.scan_data[180]
             b = self.scan_data[0]
@@ -157,70 +151,65 @@ class Thymio:
             # distances on x,y axes
             x = 0
             y = 0
-            
+
             # set x and y to be distances to the 0,0 coordinate
             if o == "U":
                 x = l
                 y = b
-                return (x,y)
+                return (x, y)
             elif o == "D":
                 x = r
                 y = f
-                return (x,y)
+                return (x, y)
             elif o == "R":
                 x = b
                 y = r
-                return (x,y)
+                return (x, y)
             elif o == "L":
                 x = f
                 y = l
-                return (x,y)
-            elif o == "DL": 
+                return (x, y)
+            elif o == "DL":
                 x = ur
                 y = ul
-                return (x,y)
+                return (x, y)
             elif o == "UL":
                 x = ul
                 y = l
-                return (x,y)
+                return (x, y)
             elif o == "UR":
                 x = dl
                 y = dr
-                return (x,y)
+                return (x, y)
             elif o == "DR":
                 x = dr
                 y = ur
-                return (x,y)
+                return (x, y)
         except:
             pass
     # not using a range of values right now - might be needed
-    # need a function to calculate if the distances make sense? 
+    # need a function to calculate if the distances make sense?
         # they need to sum either 1920 (horizontal) or 1130(vertical) roughly
 
-
     ############## State machines ###############################
-    def stateMapping(self): 
+    def stateMapping(self):
         while True:
             if self.getState() == "mapping":
                 # This method simululates first state in the state machines (MAPPING)
-                s_right = sum(self.scan_data[135:145])/len(self.scan_data[135:145])
-                s_left = sum(self.scan_data[215:225])/len(self.scan_data[215:225])
-                
-                if s_right < 150: 
+                s_right = sum(self.scan_data[135:145]) / \
+                    len(self.scan_data[135:145])
+                s_left = sum(self.scan_data[215:225]) / \
+                    len(self.scan_data[215:225])
+
+                if s_right < 150:
                     # turn right
                     self.drive(200, 0)
-                elif s_left < 150: 
+                elif s_left < 150:
                     # turn left
                     self.drive(0, 200)
-                elif self.sensorGroundValues[0] < 500 or self.sensorGroundValues[1] < 500:
-                    # drive back, turn right 
-                    self.drive(-200,-200)
-                    sleep(1)
-                    self.turnRandom()
-                    sleep(1)
-                else: 
+                else:
                     # drive forward
-                    self.drive(200,200)
+                    self.drive(300, 300)
 
 ############## Bus and aseba setup ######################################
 
@@ -254,41 +243,38 @@ class Thymio:
         print("dbus error: %s" % str(e))
 
 
-#------------------ Main loop here -------------------------
+# ------------------ Main loop here -------------------------
 
 def main():
     ############## Controller ###############################
-    
+
     # Mapping
     robot.setState("mapping")
     while True:
         sleep(1)
         try:
-            x,y = robot.lidar_orientation_values(robot.apriltagVal)
-            print(map.robotPos(x,y))
+            x, y = robot.lidar_orientation_values(robot.apriltagVal)
+            if robot.sensorGroundValues[0] < 500 or robot.sensorGroundValues[1] < 500:
+                map.detectedSwamp(x, y, robot.apriltagVal)
+            print(map.robotPos(x, y))
         except:
-            print(robot.apriltagVal)
+            print('cannot locate apriltag')
             pass
-        #print(map.robotPos(x,y))
         if(robot.apriltagVal == 'found_buddy'):
             break
 
-    #### change state ####        
+    #### change state ####
     robot.setState('found_buddy')
     robot.stop()
     print(robot.getState())
     ######################
-    
+
     # Search
 
-
-
     # Return
-         
-        
 
-#------------------- Main loop end ------------------------
 
+# ------------------- Main loop end ------------------------
 if __name__ == '__main__':
     robot = Thymio()
     try:
@@ -296,10 +282,10 @@ if __name__ == '__main__':
         sensorGroundThread = Thread(target=robot.sensors_ground)
         sensorGroundThread.daemon = True
         sensorGroundThread.start()
-            
+
         #sensorHorizontalThread = Thread(target=robot.sensors_horizontal)
         #sensorHorizontalThread.daemon = True
-        #sensorHorizontalThread.start()
+        # sensorHorizontalThread.start()
 
         # Piece of program to prevent RPLIDAREXCEPTION
         try:
@@ -314,7 +300,7 @@ if __name__ == '__main__':
         scanner_thread = Thread(target=robot.lidar_scan)
         scanner_thread.daemon = True
         scanner_thread.start()
-        
+
         apriltag_thread = Thread(target=robot.apriltagRobotOrientation)
         apriltag_thread.daemon = True
         apriltag_thread.start()
@@ -322,7 +308,7 @@ if __name__ == '__main__':
         mapping_thread = Thread(target=robot.stateMapping)
         mapping_thread.daemon = True
         mapping_thread.start()
-        
+
         main()
     except:
         robot.setState("exit")
@@ -334,4 +320,3 @@ if __name__ == '__main__':
         sleep(1)
         os.system("pkill -n asebamedulla")
         print("asebamodulla killed")
-
